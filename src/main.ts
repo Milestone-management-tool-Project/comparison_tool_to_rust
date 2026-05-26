@@ -3,16 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 let greetInputEl: HTMLInputElement | null;
 let greetMsgEl: HTMLElement | null;
 
-async function write_timer() {
-  if (greetMsgEl && greetInputEl) {
-    try{
-      greetMsgEl.textContent = await invoke("write_timer_cmd", {
-      file: String(greetInputEl.value,)
-    });
-  }catch (e){console.log(e)}
-  }
-}
-
 async function start_timer() {
   if (greetMsgEl && greetInputEl) {
     try{
@@ -35,11 +25,7 @@ async function stop_timer() {
 window.addEventListener("DOMContentLoaded", () => {
   greetInputEl = document.querySelector("#greet-input");
   greetMsgEl = document.querySelector("#greet-msg");
-  document.querySelector("#greet-form")?.addEventListener("submit", (e) => {
-    console.log("write")
-    e.preventDefault();
-    write_timer()
-  });
+  
   document.querySelector("#start")?.addEventListener("click", (e) => {
     console.log("start")
       e.preventDefault();
