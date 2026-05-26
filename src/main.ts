@@ -3,12 +3,31 @@ import { invoke } from "@tauri-apps/api/core";
 let greetInputEl: HTMLInputElement | null;
 let greetMsgEl: HTMLElement | null;
 
-async function test_tauri() {
+async function write_timer() {
   if (greetMsgEl && greetInputEl) {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
     try{
-      greetMsgEl.textContent = await invoke("test_tauri", {
-      num: Number(greetInputEl.value,)
+      greetMsgEl.textContent = await invoke("write_timer_cmd", {
+      file: String(greetInputEl.value,)
+    });
+  }catch (e){console.log(e)}
+  }
+}
+
+async function start_timer() {
+  if (greetMsgEl && greetInputEl) {
+    try{
+      greetMsgEl.textContent = await invoke("start_timer_cmd", {
+      file: String(greetInputEl.value,)
+    });
+  }catch (e){console.log(e)}
+  }
+}
+
+async function stop_timer() {
+  if (greetMsgEl && greetInputEl) {
+    try{
+      greetMsgEl.textContent = await invoke("stop_timer_cmd", {
+      file: String(greetInputEl.value,)
     });
   }catch (e){console.log(e)}
   }
@@ -17,7 +36,19 @@ window.addEventListener("DOMContentLoaded", () => {
   greetInputEl = document.querySelector("#greet-input");
   greetMsgEl = document.querySelector("#greet-msg");
   document.querySelector("#greet-form")?.addEventListener("submit", (e) => {
+    console.log("write")
     e.preventDefault();
-    test_tauri()
+    write_timer()
   });
+  document.querySelector("#start")?.addEventListener("click", (e) => {
+    console.log("start")
+      e.preventDefault();
+      start_timer()
+    });
+  document.querySelector("#stop")?.addEventListener("click", (e) => {
+    console.log("stop")
+      e.preventDefault();
+      stop_timer()
+    });
+
 });
