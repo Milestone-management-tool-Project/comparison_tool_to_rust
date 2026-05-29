@@ -38,8 +38,11 @@ pub fn write_timer(file: &Path, data: &mut Timer)-> Result<(), String>{
 }
 
  pub fn start_timer<'a>(time: &'a mut Timer)-> Result<&'a mut Timer, String>{
-    if time.flag{
-        return Err("not end".to_string());
+    if time.flag { 
+        return Err("not end".to_string())
+    }
+    if time.end_time.is_some(){
+        return Err("not end".to_string())
     }
     let start = chrono::Local::now();
     time.start_time = Some(start);
@@ -59,4 +62,49 @@ pub fn stop_timer<'a>(time: &'a mut Timer)-> Result<&'a mut Timer, String>{
 
     Ok(time)
     
+}
+
+#[cfg(test)]
+mod test{
+    use super::*;
+    #[test]
+    fn test_start_timer(){
+        let mut timer = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: false
+        };
+
+        let mut timer_2 = Timer{
+            end_time: Some(chrono::Local::now()),
+            start_time: None,
+            total: None,
+            flag: false
+        };
+
+        let mut timer_3 = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: true
+        };
+        let result_1 = start_timer(&mut timer);
+        let result_2 = start_timer(&mut timer_2);
+        let result_3 = start_timer(&mut timer_3);
+        match result_1 {
+            Ok(t) => {assert_eq!(t.flag, true); assert!(t.start_time.is_some())},
+            Err(t) => assert_eq!(t, "not end".to_string())
+        }
+
+        match result_2 {
+            Ok(t) => {assert_eq!(t.flag, true); assert!(t.start_time.is_some())},
+            Err(t) => assert_eq!(t, "not end".to_string())
+        }
+
+        match result_3 {
+            Ok(t) => {assert_eq!(t.flag, true); assert!(t.start_time.is_some())},
+            Err(t) => assert_eq!(t, "not end".to_string())
+        }
+    }
 }
