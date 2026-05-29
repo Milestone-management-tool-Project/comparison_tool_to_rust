@@ -46,6 +46,37 @@ impl Timer {
         }
     }
     fn total_time(&self)-> Option<String>{
-        self.total.map(|d|{format!("{:02}:{:02}:{:02}", d.num_hours(), d.num_minutes() %60, d.num_seconds()%60)})
+        self.total.map(|d|{format!("{:02}:{:02}:{:02}", d.num_hours(), d.num_minutes() % 60, d.num_seconds() % 60)})
+    }
+}
+
+#[cfg(test)]
+mod tests {
+use super::*;
+    #[test]
+    fn test_is_empty(){
+        let mut timer = Timer{
+            flag: false,
+            end_time: None,
+            start_time: None,
+            total: None
+        };
+        assert_eq!(timer.is_empty(), true);
+        let start = chrono::Local::now();
+        timer.start_time = Some(start);
+        assert_eq!(timer.is_empty(), false);
+        
+    }
+    #[test]
+    fn test_total_timer(){
+        let mut timer = Timer{
+            flag: false,
+            end_time: None,
+            start_time: None,
+            total: None
+        };
+        assert_eq!(timer.total.is_none(), true);
+        timer.total = Some(TimeDelta::seconds(3661));
+        assert_eq!(timer.total_time(), Some("01:01:01".to_string()));
     }
 }
