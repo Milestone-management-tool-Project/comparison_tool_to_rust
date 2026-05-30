@@ -1,3 +1,4 @@
+use chrono::TimeDelta;
 use csv::{Reader, Writer};
 use crate::Timer;
 use std::{fs::File, path::Path};
@@ -54,11 +55,20 @@ pub fn write_timer(file: &Path, data: &mut Timer)-> Result<(), String>{
 pub fn stop_timer<'a>(time: &'a mut Timer)-> Result<&'a mut Timer, String>{
     if !time.flag{
         return Err("not start".to_string());
+        
     }
+    if time.start_time.is_none(){
+        return Err("not start time".to_string());
+    }
+
     let end = chrono::Local::now();
     time.end_time = Some(end);
     time.flag = false;
     time.total = time.end_time.zip(time.start_time).map(|(e, s)| e - s);
+    
+    if time.total < Some(TimeDelta::zero()){
+        return Err("不正な計算結果を検知".to_string());
+    }
 
     Ok(time)
     
@@ -73,7 +83,7 @@ mod test{
             end_time: None,
             start_time: None,
             total: None,
-            flag: false
+            flag: true
         };
 
         let mut timer_2 = Timer{
@@ -105,6 +115,64 @@ mod test{
         match result_3 {
             Ok(t) => {assert_eq!(t.flag, true); assert!(t.start_time.is_some())},
             Err(t) => assert_eq!(t, "not end".to_string())
+        }
+    }
+
+    #[test]
+    fn test_stop_timer(){
+        let mut timer = Timer{
+            end_time: None,
+            start_time: Some(chrono::Local::now()),
+            total: None,
+            flag: true
+        };
+
+        let mut timer_2_1 = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: false
+        };
+
+        let mut timer_2_2 = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: true
+        };
+
+        let mut timer_3 = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: true
+        };
+        
+        let result_1 = stop_timer(&mut timer);
+        let result_2_1 = stop_timer(&mut timer_2_1);
+        let result_2_2 = stop_timer(&mut timer_2_2);
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        timer_3.start_time = Some(chrono::Local::now() + chrono::Duration::hours(1));
+        let result_3 = stop_timer(&mut timer_3);
+        
+        match result_1 {
+            Ok(t) => {assert_eq!(t.flag, false); assert!(t.end_time.is_some()); assert!(t.total.is_some())},
+            Err(t) => assert_eq!(t, "not start".to_string())
+        }
+
+        match result_2_1 {
+            Ok(t) => {assert_eq!(t.flag, false); assert!(t.end_time.is_some())},
+            Err(t) => assert_eq!(t, "not start".to_string())
+        }
+
+        match result_2_2 {
+            Ok(t) => {assert_eq!(t.flag, true); assert!(t.end_time.is_none())},
+            Err(t) => assert_eq!(t, "not start time".to_string())
+        }
+
+        match result_3 {
+            Ok(t) => assert!(t.flag),
+            Err(t) => assert_eq!(t, "不正な計算結果を検知".to_string())
         }
     }
 }
