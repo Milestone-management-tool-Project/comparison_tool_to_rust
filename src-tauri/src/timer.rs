@@ -1,17 +1,23 @@
 use chrono::TimeDelta;
 use csv::{Reader, Writer};
 use crate::Timer;
-use std::{fs::File, path::Path};
+use std::{fs::{File}, path::Path};
 
 #[tauri::command]
 pub fn write_timer(file: &Path, data: &mut Timer)-> Result<(), String>{
-    if data.is_empty(){
-        return Err( "データが保存されていません".to_string());
+    if !data.is_start(){
+        return Err( "開始時間の無いデータが送られました".to_string());
     }
-    println!("{:?}", data.flag);
+    if !data.is_stop(){
+        return Err( "終了時間の無いデータが送られました".to_string());
+    }
+    if !data.is_total(){
+        return Err( "計算結果の無いデータが送られました".to_string());
+    }
+
     let mut header_data = Reader::from_path(&file).map_err(|e|e.to_string())?;
     let _header = header_data.headers().map_err(|e|e.to_string())?;
-
+   
     if _header.is_empty(){
         let header = ["start-date", "start-time", "end-date", "end-time", "total"];
         let mut csv_file = Writer::from_path(file).map_err(|e|e.to_string())?;
@@ -33,7 +39,6 @@ pub fn write_timer(file: &Path, data: &mut Timer)-> Result<(), String>{
     let csv_data = [&start_date, &start_time, &end_date, &end_time, &duration];
     csv_writer.write_record(csv_data).map_err(|e|e.to_string())?;
         
-    println!("Ok");
     Ok(())
     
 }
@@ -43,7 +48,8 @@ pub fn write_timer(file: &Path, data: &mut Timer)-> Result<(), String>{
         return Err("not end".to_string())
     }
     if time.end_time.is_some(){
-        return Err("not end".to_string())
+        time.end_time = None;
+        
     }
     let start = chrono::Local::now();
     time.start_time = Some(start);
@@ -97,23 +103,24 @@ mod test{
             end_time: None,
             start_time: None,
             total: None,
-            flag: true
+            flag: false
         };
         let result_1 = start_timer(&mut timer);
         let result_2 = start_timer(&mut timer_2);
         let result_3 = start_timer(&mut timer_3);
+        // 終了していない状態だった場合をテスト
         match result_1 {
-            Ok(t) => {assert_eq!(t.flag, true); assert!(t.start_time.is_some())},
+            Ok(t) => {assert_eq!(t.flag, false); assert!(t.start_time.is_some())},
             Err(t) => assert_eq!(t, "not end".to_string())
         }
-
+        // 以前の終了時間が残った状態の挙動をテスト
         match result_2 {
             Ok(t) => {assert_eq!(t.flag, true); assert!(t.start_time.is_some())},
             Err(t) => assert_eq!(t, "not end".to_string())
         }
-
+        // アプリ起動時の正常な状態を想定したテスト
         match result_3 {
-            Ok(t) => {assert_eq!(t.flag, true); assert!(t.start_time.is_some())},
+            Ok(t) => {assert_eq!(t.flag, true); assert!(t.end_time.is_none())},
             Err(t) => assert_eq!(t, "not end".to_string())
         }
     }
@@ -174,5 +181,62 @@ mod test{
             Ok(t) => assert!(t.flag),
             Err(t) => assert_eq!(t, "不正な計算結果を検知".to_string())
         }
+    }
+
+    #[test]
+    fn test_write_timer(){
+        use tempfile;
+        let mut timer_1 = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: true
+        };
+        let dir = tempfile::Builder::new().suffix(".csv").tempfile().unwrap();
+        let temp_file = dir.path();
+        let test = write_timer(temp_file, &mut timer_1);
+        match test {
+            Ok(t) => println!("{:?}", t),
+            Err(t) => assert_eq!("開始時間の無いデータが送られました", t)
+        }
+
+        let mut timer_2 = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: true
+        };
+        timer_2.start_time = Some(chrono::Local::now());
+        let test = write_timer(temp_file, &mut timer_2);
+        match test {
+            Ok(t) => println!("{:?}", t),
+            Err(t) => assert_eq!("終了時間の無いデータが送られました", t)
+        }
+
+        let mut timer_3 = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: true
+        };
+        timer_3.start_time = Some(chrono::Local::now());
+        timer_3.end_time = Some(chrono::Local::now() + chrono::Duration::hours(1));
+        let test = write_timer(temp_file, &mut timer_3);
+        match test {
+            Ok(t) => println!("{:?}", t),
+            Err(t) => assert_eq!("計算結果の無いデータが送られました", t)
+        }
+        let mut timer_4 = Timer{
+            end_time: None,
+            start_time: None,
+            total: None,
+            flag: true
+        };
+        timer_4.start_time = Some(chrono::Local::now());
+        timer_4.end_time = Some(chrono::Local::now() + chrono::Duration::hours(0));
+        timer_4.total   = timer_4.start_time.zip(timer_4.end_time).map(|(e,   s)| e - s );
+        write_timer(temp_file, &mut timer_4).unwrap();
+        let file_data = std::fs::read_to_string(temp_file).unwrap();
+        assert_eq!(file_data.lines().next().unwrap(), "start-date,start-time,end-date,end-time,total".to_string());
     }
 }

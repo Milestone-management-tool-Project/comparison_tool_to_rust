@@ -38,8 +38,22 @@ pub struct Timer{
 }
 
 impl Timer {
-    fn is_empty(&self)->bool{
-        if self.start_time.is_none() && self.end_time.is_none() && self.total.is_none(){
+    fn is_start(&self)->bool{
+        if self.start_time.is_some(){
+            return true;
+        }else {
+            return false;
+        }
+    }
+    fn is_stop(&self)->bool{
+        if self.end_time.is_some(){
+            return true;
+        }else {
+            return false;
+        }
+    }
+    fn is_total(&self)->bool{
+        if self.total.is_some(){
             return true;
         }else {
             return false;
@@ -54,18 +68,23 @@ impl Timer {
 mod tests {
 use super::*;
     #[test]
-    fn test_is_empty(){
+    fn test_field_existence_checks(){
         let mut timer = Timer{
             flag: false,
             end_time: None,
             start_time: None,
             total: None
         };
-        assert_eq!(timer.is_empty(), true);
+        assert_eq!(timer.is_start(), false);
         let start = chrono::Local::now();
         timer.start_time = Some(start);
-        assert_eq!(timer.is_empty(), false);
-        
+        assert_eq!(timer.is_start(),true);
+        assert_eq!(timer.is_stop(), false);
+        timer.end_time = Some(chrono::Local::now() + chrono::Duration::hours(1));
+        assert_eq!(timer.is_stop(), true);
+        assert_eq!(timer.is_total(), false);
+        timer.total = timer.end_time.zip(timer.start_time).map(|(e, s)| e - s);
+        assert_eq!(timer.is_total(), true);
     }
     #[test]
     fn test_total_timer(){
