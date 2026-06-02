@@ -1,9 +1,8 @@
 use chrono::TimeDelta;
 use csv::{Reader, Writer};
-use crate::Timer;
+use crate::structure::Timer;
 use std::{fs::{File}, path::Path};
 
-#[tauri::command]
 pub fn write_timer(file: &Path, data: &mut Timer)-> Result<(), String>{
     if !data.is_start(){
         return Err( "開始時間の無いデータが送られました".to_string());

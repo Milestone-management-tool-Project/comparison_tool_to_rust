@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use tauri::State;
 use crate::file_operations;
 use crate::timer;
-use crate::Timer;
+use crate::structure::Timer;
 
 #[tauri::command]
 pub fn start_timer_cmd(file: String, timer_start: State<'_,Mutex<Timer>>) -> Result<(), String>{

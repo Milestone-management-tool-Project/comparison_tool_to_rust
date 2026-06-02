@@ -1,4 +1,4 @@
-use comparison_tool_lib::Timer;
+use comparison_tool_lib::structure::Timer;
 use comparison_tool_lib::timer::{start_timer, stop_timer, write_timer};
 use tempfile;
 
