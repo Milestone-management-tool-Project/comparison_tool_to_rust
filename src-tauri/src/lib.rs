@@ -3,6 +3,7 @@ pub mod wrapper;
 pub mod file_operations;
 pub mod timer;
 pub mod structure;
+pub mod goals;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

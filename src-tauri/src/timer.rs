@@ -15,9 +15,9 @@ pub fn write_timer(file: &Path, data: &mut Timer)-> Result<(), String>{
     }
 
     let mut header_data = Reader::from_path(&file).map_err(|e|e.to_string())?;
-    let _header = header_data.headers().map_err(|e|e.to_string())?;
+    let header = header_data.headers().map_err(|e|e.to_string())?;
    
-    if _header.is_empty(){
+    if header.is_empty(){
         let header = ["start-date", "start-time", "end-date", "end-time", "total"];
         let mut csv_file = Writer::from_path(file).map_err(|e|e.to_string())?;
         csv_file.write_record(header).map_err(|e|e.to_string())?;

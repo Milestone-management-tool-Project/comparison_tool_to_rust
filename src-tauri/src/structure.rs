@@ -1,6 +1,6 @@
-use chrono::{DateTime, Local, TimeDelta};
-
-
+use chrono::{DateTime, Local, TimeDelta, NaiveDate};
+use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 pub struct Timer{
     pub flag: bool,
     pub start_time: Option<DateTime<Local>>,
@@ -69,4 +69,49 @@ use super::*;
         timer.total = Some(TimeDelta::seconds(3661));
         assert_eq!(timer.total_time(), Some("01:01:01".to_string()));
     }
+}
+
+
+#[derive(Serialize, Deserialize,Debug, Clone)]
+pub struct Goals{
+    pub ticket_id: String,
+    pub title: String,
+    pub description: Description,
+    pub limit: NaiveDate,
+    pub work_domain: Option<Vec<WorkDomain>>
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Description{
+    pub overview: String,
+    pub detail: String
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WorkDomain{
+    pub domain_id: Uuid,
+    pub title: String,
+    pub label: Vec<Label>,
+    pub created_at: NaiveDate,
+    pub updated_at: Option<NaiveDate>,
+    pub status: i8,
+    pub limit: NaiveDate,
+    pub completion_flag: bool,
+    pub task: Option<Vec<Task>>
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Label{
+    pub purpose: String,
+    pub work_domain: String
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Task{
+    pub task_id: Uuid,
+    pub title: String,
+    pub created_at: NaiveDate,
+    pub limit: NaiveDate,
+    pub status: i8,
+    pub updated_at: Option<NaiveDate>
 }
