@@ -89,7 +89,7 @@ pub struct Description{
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WorkDomain{
-    pub domain_id: Uuid,
+    pub domain_id: String,
     pub title: String,
     pub label: Vec<Label>,
     pub created_at: NaiveDate,
