@@ -21,11 +21,10 @@ pub fn create_project(file: &Path, title :String, overview: String, detail: Stri
     }
     let description = Description{overview: overview, detail: detail};
     let id = Uuid::new_v4();
-    let ticket_id = id.to_string();
     if title.is_empty(){
         return Err("project_name is None".to_string());
     }
-    let goal = Goals{ticket_id: ticket_id, title: title, description: description, limit: limit_data, work_domain: None};
+    let goal = Goals{ticket_id: id, title: title, description: description, limit: limit_data, work_domain: None};
 
     let mut json_file = OpenOptions::new().write(true).append(true).open(file).map_err(|e|e.to_string())?;
     serde_json::to_writer(&json_file, &goal).map_err(|e|e.to_string())?;
@@ -60,9 +59,13 @@ pub fn create_child_ticket(file: &Path, target_id: String, title :String, create
         Ok(dt) => dt,
         Err(e) => return  Err(e)
     };
-
+    let target = match Uuid::parse_str(&target_id) {
+        Ok(d) => d,
+        Err(e) => return Err(e.to_string())
+    };
+    
     let child_ticket = WorkDomain{
-        domain_id: id.to_string(), 
+        domain_id: id, 
         title: title,
         label: label, 
         created_at: created_at, 
@@ -73,17 +76,16 @@ pub fn create_child_ticket(file: &Path, target_id: String, title :String, create
         task: None
     };
     let mut gd: Vec<Goals> = Vec::new();
-    let json_file = OpenOptions::new().write(true).truncate(true).open(&file).map_err(|e|e.to_string())?;
+    let mut json_file = OpenOptions::new().write(true).truncate(true).open(&file).map_err(|e|e.to_string())?;
     for i in datas.lines() {
         let mut json_data = serde_json::from_str::<Goals>(&i).map_err(|e|e.to_string())?;
-        if json_data.ticket_id != target_id{
+        if json_data.ticket_id != target{
             gd.push(json_data);
             continue;
         }
-    
+        
         let d = &mut json_data.work_domain;
         if let Some(ref mut data) =  d{
-            println!("{:?}", data);
             data.push(child_ticket.clone());
             gd.push(json_data.clone()); 
         }else {
@@ -92,12 +94,12 @@ pub fn create_child_ticket(file: &Path, target_id: String, title :String, create
         }
     };
     for i in gd {
-        println!("{:?}", i);
         serde_json::to_writer(&json_file, &i).map_err(|e|e.to_string())?;
+        json_file.write_all(b"\n").map_err(|e|e.to_string())?;
     }
-
     Ok(())
 }
+
 
 pub fn create_grandchild_ticket(file: &Path, target_id: String, domain_id: String, title :String, created_at:String, updated_at:String, limit:String, status: i8)-> Result<(), String>{
     if title.is_empty(){
@@ -142,16 +144,24 @@ pub fn create_grandchild_ticket(file: &Path, target_id: String, domain_id: Strin
         updated_at: Some(updated_at),
         
     };
+    let target = match Uuid::parse_str(&target_id) {
+        Ok(d) => d,
+        Err(e) => return Err(e.to_string())
+    };
+    let domain = match Uuid::parse_str(&domain_id) {
+        Ok(d) => d,
+        Err(e) => return Err(e.to_string())
+    };
     let mut dt:Vec<Goals> = Vec::new();
     for i in  datas.lines(){
         let mut json_data = serde_json::from_str::<Goals>(&i).map_err(|e|e.to_string())?;
-        if json_data.ticket_id != target_id{
+        if json_data.ticket_id != target{
             dt.push(json_data);
             continue;
         }
         if let Some(ref mut  dd) = &mut json_data.work_domain {
             for i in dd.iter_mut() {
-                if i.domain_id != domain_id{
+                if i.domain_id != domain{
                     continue;
                 }
                 if let Some(task) = i.task.as_mut(){

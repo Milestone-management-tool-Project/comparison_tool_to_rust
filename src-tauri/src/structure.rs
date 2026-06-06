@@ -74,7 +74,7 @@ use super::*;
 
 #[derive(Serialize, Deserialize,Debug, Clone)]
 pub struct Goals{
-    pub ticket_id: String,
+    pub ticket_id: Uuid,
     pub title: String,
     pub description: Description,
     pub limit: NaiveDate,
@@ -89,7 +89,7 @@ pub struct Description{
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WorkDomain{
-    pub domain_id: String,
+    pub domain_id: Uuid,
     pub title: String,
     pub label: Vec<Label>,
     pub created_at: NaiveDate,
