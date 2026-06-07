@@ -182,3 +182,70 @@ pub fn create_grandchild_ticket(file: &Path, target_id: String, domain_id: Strin
     }
     Ok(())
 }
+
+pub fn update_task_status(file: &Path, target_id: String, domain_id: String, task_id: String, limit:String, status: i8)-> Result<(), String>{
+    let updated_at = chrono::Local::now().date_naive();
+    let limit_data = NaiveDate::parse_from_str(&limit, "%Y-%m-%d").map_err(|e|e.to_string());
+    let limit = match limit_data {
+        Ok(dt) => dt,
+        Err(e) => return  Err(e)
+    };
+    if status > 1 {
+        return Err("status err".to_string());
+    }
+    if status < -1 {
+        return Err("status err".to_string());
+    }
+
+    let mut dt:Vec<Goals> = Vec::new();
+     let target = match Uuid::parse_str(&target_id) {
+        Ok(d) => d,
+        Err(e) => return Err(e.to_string())
+    };
+    let domain = match Uuid::parse_str(&domain_id) {
+        Ok(d) => d,
+        Err(e) => return Err(e.to_string())
+    };
+    let tasks = match Uuid::parse_str(&task_id) {
+        Ok(d) => d,
+        Err(e) => return Err(e.to_string())
+    };
+
+    let data = fs::read_to_string(&file);
+    let datas = match data {
+      Ok(d) => d,
+      Err(e) => return Err(e.to_string())
+    };
+    for i in datas.lines() {
+        let mut json_data = serde_json::from_str::<Goals>(&i).map_err(|e|e.to_string())?;
+        if json_data.ticket_id != target{
+            dt.push(json_data);
+            continue;
+        }
+        if let Some(ref mut  dd) = &mut json_data.work_domain {
+            for i in dd.iter_mut() {
+                if i.domain_id != domain{
+                    continue;
+                }
+                if let Some(mut task) =  i.task.clone(){
+                    for task_data in &mut task {
+                        if task_data.task_id != tasks{
+                            return Err("No task id".to_string());
+                        }
+                        task_data.updated_at = Some(updated_at);
+                        task_data.status = status;
+                        task_data.limit = limit;  
+                    }
+                    i.task = Some(task);
+                }
+            }
+              dt.push(json_data.clone());
+        }
+    }
+    let mut json_file = OpenOptions::new().write(true).truncate(true).open(&file).map_err(|e|e.to_string())?;
+    for i in dt {
+        serde_json::to_writer(&json_file, &i).map_err(|e|e.to_string())?;
+        json_file.write_all(b"\n").map_err(|e|e.to_string())?;
+    }
+    Ok(())
+}
