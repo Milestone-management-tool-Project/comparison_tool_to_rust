@@ -78,6 +78,7 @@ pub struct Goals{
     pub title: String,
     pub description: Description,
     pub limit: NaiveDate,
+    pub completion_flag: bool,
     pub work_domain: Option<Vec<WorkDomain>>
 }
 

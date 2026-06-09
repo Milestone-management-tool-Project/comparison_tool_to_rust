@@ -24,7 +24,7 @@ pub fn create_project(file: &Path, title :String, overview: String, detail: Stri
     if title.is_empty(){
         return Err("project_name is None".to_string());
     }
-    let goal = Goals{ticket_id: id, title: title, description: description, limit: limit_data, work_domain: None};
+    let goal = Goals{ticket_id: id, title: title, description: description, limit: limit_data, completion_flag: false, work_domain: None};
 
     let mut json_file = OpenOptions::new().write(true).append(true).open(file).map_err(|e|e.to_string())?;
     serde_json::to_writer(&json_file, &goal).map_err(|e|e.to_string())?;
@@ -243,9 +243,106 @@ pub fn update_task_status(file: &Path, target_id: String, domain_id: String, tas
         }
     }
     let mut json_file = OpenOptions::new().write(true).truncate(true).open(&file).map_err(|e|e.to_string())?;
-    for i in dt {
-        serde_json::to_writer(&json_file, &i).map_err(|e|e.to_string())?;
+    for mut i in dt {
+        let result = updaet_domain_status(&mut i)?;
+        serde_json::to_writer(&json_file, &result).map_err(|e|e.to_string())?;
         json_file.write_all(b"\n").map_err(|e|e.to_string())?;
     }
     Ok(())
+}
+
+fn updaet_domain_status(data: &mut Goals)-> Result<Goals, String>{
+    let data_vec = vec![data.clone()];
+    let mut task_status:Vec<i8> = Vec::new();
+    let mut domain_data = Vec::<WorkDomain>::new();
+    let time = chrono::Local::now().date_naive();
+    for result_data in &data_vec {
+        if result_data.work_domain.is_none(){
+            continue;
+        }
+        if let Some(domain_data) = result_data.work_domain.clone() {
+            for domain in domain_data {
+                if domain.task.is_none() {
+                    continue;
+                }
+                if let Some(task_data) = domain.task {
+                    for task in task_data {
+                        if task.status < -1{
+                            return Err("status err".to_string());
+                        }
+                        if task.status > 1{
+                            return Err("status err".to_string());
+                        }
+                        task_status.push(task.status);
+                    }
+                }
+            }
+        }
+    }
+    let result = task_status.iter().all(|a|*a == 1);
+    let status_0 = task_status.iter().all(|a| *a == -1);
+    for target in data_vec {
+        if target.work_domain.is_none(){
+            continue;
+        }
+        if let Some(domain) = target.work_domain{
+            for mut work_domain in domain {
+                if result{
+                    work_domain.status = 1;
+                    work_domain.completion_flag = true;
+                    work_domain.updated_at = Some(time);
+                    domain_data.push(work_domain);
+                }
+                else if status_0{
+                    work_domain.status = -1;
+                    work_domain.completion_flag = false;
+                    work_domain.updated_at = Some(time);
+                    domain_data.push(work_domain);
+                }else {
+                    work_domain.status = 0;
+                    work_domain.completion_flag = false;
+                    work_domain.updated_at = Some(time);
+                    domain_data.push(work_domain);
+                }
+            }
+        }
+    }
+    data.work_domain = Some(domain_data);
+    let result = update_project_status(&mut *data)?;
+    return Ok(result);
+}
+
+fn update_project_status(data: &mut Goals)-> Result<Goals, String>{
+    let mut data_vec = vec![data.clone()];
+    let mut flag_vec = Vec::<bool>::new();
+    let mut result_vec = Vec::<Goals>::new();
+    for goals in &mut data_vec {
+        if goals.work_domain.is_none() {
+            continue;
+        }
+        let domain_flag = match &goals.work_domain {
+            Some(c) => c,
+            None => return  Err("domain_flag is None".to_string()),
+       };
+        for flag_data in domain_flag {
+            flag_vec.push(flag_data.completion_flag);
+        }
+        result_vec.push(goals.clone());
+    }
+    let mut result = flag_vec.iter().all(|f| *f == true);
+    if flag_vec.is_empty(){
+        result = false;
+    }
+    println!("update_project_status result {}", result);
+    for mut results in result_vec {        
+        if result{
+            results.completion_flag = true;
+            data.completion_flag = results.completion_flag;
+       }
+       else {
+           results.completion_flag = false;
+           data.completion_flag = results.completion_flag;
+       }
+    };
+    Ok(data.clone())
 }
