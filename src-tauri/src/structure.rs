@@ -85,7 +85,7 @@ pub struct Goals{
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Description{
     pub overview: String,
-    pub detail: String
+    pub datail: String
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
